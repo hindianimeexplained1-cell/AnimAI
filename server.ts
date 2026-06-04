@@ -207,7 +207,19 @@ Only return a JSON object. Ensure the prompts are deeply rooted in the details o
       throw new Error("AI সার্ভিস থেকে কোনো উত্তর পাওয়া যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।");
     }
 
-    const parsedResult = JSON.parse(resultText);
+    // Clean up markdown backticks if any
+    let cleanedText = resultText.trim();
+    if (cleanedText.startsWith("```json")) {
+      cleanedText = cleanedText.substring(7);
+    } else if (cleanedText.startsWith("```")) {
+      cleanedText = cleanedText.substring(3);
+    }
+    if (cleanedText.endsWith("```")) {
+      cleanedText = cleanedText.substring(0, cleanedText.length - 3);
+    }
+    cleanedText = cleanedText.trim();
+
+    const parsedResult = JSON.parse(cleanedText);
     res.json(parsedResult);
 
   } catch (error: any) {

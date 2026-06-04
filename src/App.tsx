@@ -180,19 +180,62 @@ export default function App() {
       return;
     }
 
-    if (file.size > 12 * 1024 * 1024) {
-      setError("ফাইলের সাইজ খুবই বড় (সর্বোচ্চ ১২ মেগাবাইট অনুমোদন করা হয়)।");
+    if (file.size > 35 * 1024 * 1024) {
+      setError("ফাইলের সাইজ অনেক বড় (সর্বোচ্চ ৩৫ মেগাবাইট পর্যন্ত অনুমোদন করা হয়)।");
       return;
     }
 
     setImageName(file.name);
-    setMimeType(file.type);
+    // Since we compress it to JPEG format, set visual mimeType to image/jpeg
+    setMimeType("image/jpeg");
     setError(null);
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const base64Data = e.target?.result as string;
-      setSelectedImage(base64Data);
+      const img = new Image();
+      img.onload = () => {
+        // Optimize to standard 1200px maximum dimension for extremely sharp details but lightweight size
+        const maxDim = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          try {
+            // Compress with high fidelity (0.83 value is highly optimal)
+            const compressedBase64 = canvas.toDataURL("image/jpeg", 0.83);
+            setSelectedImage(compressedBase64);
+            console.log(`Image compressed: original was ${(file.size / 1024).toFixed(1)}KB, now ${(compressedBase64.length / 1333).toFixed(1)}KB`);
+          } catch (err) {
+            console.warn("Canvas compression failed, falling back to original source file:", err);
+            setSelectedImage(e.target?.result as string);
+            setMimeType(file.type);
+          }
+        } else {
+          setSelectedImage(e.target?.result as string);
+          setMimeType(file.type);
+        }
+      };
+      img.onerror = () => {
+        setSelectedImage(e.target?.result as string);
+        setMimeType(file.type);
+      };
+      img.src = e.target?.result as string;
     };
     reader.onerror = () => {
       setError("ইমেজ লোড করতে সমস্যা হয়েছে। দয়া করে অন্য একটি ইমেজ দিয়ে চেষ্টা করুন।");
@@ -272,11 +315,28 @@ export default function App() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "সার্ভার থেকে প্রম্পট তৈরি করতে ব্যর্থ হয়েছে।");
+        let errorMessage = "সার্ভার থেকে প্রম্পট তৈরি করতে ব্যর্থ হয়েছে।";
+        try {
+          const text = await response.text();
+          if (text) {
+            const errorData = JSON.parse(text);
+            errorMessage = errorData.error || errorMessage;
+          }
+        } catch (e) {
+          errorMessage = `সার্ভার সমস্যা (স্ট্যাটাস কোড: ${response.status})। অনুগ্রহ করে নিশ্চিত করুন যে AI Studio সেটিংসের Secrets মেনুতে আপনার GEMINI_API_KEY সঠিকভাবে দেওয়া আছে।`;
+        }
+        throw new Error(errorMessage);
       }
 
-      const rawResult: AnimationPromptResult = await response.json();
+      const textResult = await response.text();
+      let rawResult: AnimationPromptResult;
+      try {
+        rawResult = JSON.parse(textResult);
+      } catch (parseErr) {
+        console.error("Failed to parse success JSON payload:", parseErr, textResult);
+        throw new Error("সার্ভার থেকে প্রাপ্ত তথ্য সঠিক ফরম্যাটে নেই (JSON parsing failed)।");
+      }
+
       setResult(rawResult);
       
       // Select the first prompt as active tab
@@ -462,7 +522,7 @@ export default function App() {
                       ইমেজ ড্রপ করুন বা ক্লিক করে ব্রাউজ করুন
                     </h4>
                     <p className="text-xs text-white/40 mt-1 max-w-xs">
-                      অনুমোদিত ফরম্যাট: PNG, JPG, JPEG, WEBP (সর্বোচ্চ ১২ মেগাবাইট)
+                      অনুমোদিত ফরম্যাট: PNG, JPG, JPEG, WEBP (১০-১২ MB সহ সর্বোচ্চ ৩৫ MB পর্যন্ত)
                     </p>
                     
                     <button 
