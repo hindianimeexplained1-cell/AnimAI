@@ -473,16 +473,7 @@ export default function App() {
             <span>{customApiKey ? "এপিআই একটিভ" : "এপিআই এড করুন"}</span>
           </button>
 
-          {isInstallable && !isInstalledLocally && (
-            <button 
-              onClick={handleInstallApp}
-              className="px-3.5 py-2 rounded-xl bg-gradient-to-b from-[#10b981] to-[#059669] border-b-[4px] border-[#065f46] text-white hover:brightness-110 active:border-b-0 active:translate-y-[4px] shadow-[0_4px_0_#065f46,0_8px_16px_rgba(16,185,129,0.3)] flex items-center gap-2 transition-all cursor-pointer text-xs font-bold font-sans"
-              title="মোবাইলে বা হোম স্ক্রিনে অ্যাপটি ইনস্টল করুন"
-            >
-              <Smartphone className="w-3.5 h-3.5 text-white animate-bounce" />
-              <span>ইনস্টল করুন</span>
-            </button>
-          )}
+
 
           <button 
             onClick={() => setShowHistory(!showHistory)}
