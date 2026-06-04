@@ -1,0 +1,6 @@
+{
+  "name": "Image Animation Prompt Creator",
+  "description": "একটি ফুল-স্ট্যাক বাংলা অ্যাপ্লিকেশন যা আপনার আপলোড করা ইমেজ বিশ্লেষণ করে লূমা, রানওয়ে বা সোরা-এর জন্য বিশদ এনিমেশন প্রম্পট তৈরি করে দেয়।",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
