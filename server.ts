@@ -17,10 +17,10 @@ app.use(express.urlencoded({ limit: "25mb", extended: true }));
  * Lazy-initializes and validates the Gemini Client.
  * Throws a clear error if the API key is not supplied.
  */
-function getGeminiClient() {
-  const apiKey = process.env.GEMINI_API_KEY;
+function getGeminiClient(customKey?: string) {
+  const apiKey = customKey || process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not defined. Please add your GEMINI_API_KEY in the Secrets panel in AI Studio settings.");
+    throw new Error("GEMINI_API_KEY পাওয়া যায়নি। অনুগ্রহ করে আপনার নিজস্ব API কী অ্যাপের সেটিংস থেকে যুক্ত করুন অথবা AI Studio Secrets প্যানেলে সেটআপ করুন।");
   }
   return new GoogleGenAI({
     apiKey: apiKey,
@@ -55,7 +55,8 @@ app.post("/api/generate-prompt", async (req, res) => {
       });
     }
 
-    const ai = getGeminiClient();
+    const customKey = req.headers["x-gemini-key"] as string || "";
+    const ai = getGeminiClient(customKey);
 
     // Mapping values to clear textual guidance
     const speedLabels: Record<string, string> = {
