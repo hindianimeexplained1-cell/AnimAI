@@ -19,7 +19,9 @@ import {
   Cpu,
   Smartphone,
   Download,
-  Key
+  Key,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { 
   AnimationPromptResult, 
@@ -76,11 +78,14 @@ export default function App() {
 
   // Custom Gemini API Key State handle
   const [customApiKey, setCustomApiKey] = useState<string>("");
+  const [hasServerKey, setHasServerKey] = useState<boolean | null>(null);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState<boolean>(false);
+  const [showApiKeyPlainText, setShowApiKeyPlainText] = useState<boolean>(false);
 
   // File Input Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load custom API key and check install state on mount
+  // Load custom API key and check install/api-key state on mount
   useEffect(() => {
     const savedKey = localStorage.getItem("animai_custom_api_key");
     if (savedKey) {
@@ -94,6 +99,19 @@ export default function App() {
     ) {
       setIsInstalledLocally(true);
     }
+
+    const checkServerKeys = async () => {
+      try {
+        const res = await fetch("/api/health");
+        if (res.ok) {
+          const data = await res.json();
+          setHasServerKey(data.hasServerKey === true);
+        }
+      } catch (err) {
+        console.warn("API health check failed:", err);
+      }
+    };
+    checkServerKeys();
   }, []);
 
   const handleSaveApiKey = (key: string) => {
@@ -440,6 +458,21 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm font-medium">
+          <button
+            onClick={() => setIsApiKeyModalOpen(true)}
+            className={`px-3 sm:px-3.5 py-2 rounded-xl border-b-[4px] flex items-center gap-1.5 font-bold transition-all active:border-b-0 active:translate-y-[4px] cursor-pointer text-xs ${
+              customApiKey 
+                ? "bg-emerald-950/35 hover:bg-emerald-950/50 border-emerald-500/25 border-b-emerald-800 text-emerald-300"
+                : hasServerKey === false
+                  ? "bg-amber-950/50 hover:bg-amber-900/40 border-amber-500/40 border-b-amber-950 text-amber-300 animate-pulse shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                  : "bg-indigo-950/20 hover:bg-indigo-900/20 border-indigo-500/10 border-b-indigo-950 text-indigo-300"
+            }`}
+            title="Gemini API Key সেটিংস"
+          >
+            <Key className={`w-3.5 h-3.5 flex-shrink-0 ${customApiKey ? "text-emerald-400 rotate-45" : "text-amber-400"}`} />
+            <span>{customApiKey ? "এপিআই একটিভ" : "এপিআই এড করুন"}</span>
+          </button>
+
           {isInstallable && !isInstalledLocally && (
             <button 
               onClick={handleInstallApp}
@@ -547,6 +580,18 @@ export default function App() {
           {(!showHistory || !showHistory) && (
             <div className="bg-[#0b0c14]/85 border-2 border-white/5 rounded-3xl p-5 sm:p-6 shadow-[0_16px_40px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.08)] flex flex-col gap-6">
               
+              {hasServerKey === false && !customApiKey && (
+                <div className="border border-yellow-500/25 bg-yellow-500/5 rounded-2xl p-4 flex gap-3 text-yellow-200/90 items-start shadow-[inset_0_2px_8px_rgba(0,0,0,0.6)] animate-fadeIn">
+                  <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5 animate-pulse" />
+                  <div className="text-xs space-y-1">
+                    <p className="font-bold">Gemini API কী সেটআপ করা নেই!</p>
+                    <p className="text-white/60 leading-relaxed font-sans">
+                      ইনস্টল করার পর বা বাইরে চালানোর জন্য ব্যাকএন্ডে কোনো ডিফল্ট API কী পাওয়া যায়নি। প্রম্পট সফলভাবে তৈরি করতে অনুগ্রহ করে নিচের <strong>"Gemini API সেটিংস"</strong> বক্সে আপনার নিজের <strong>API কী</strong> প্রদান করুন।
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Image Drag N Drop Workspace */}
               <div>
                 <label className="block text-xs font-bold tracking-wider text-white/70 mb-2.5 uppercase font-[#font-mono]">
@@ -1132,6 +1177,111 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Gemini API Key Configuration Modal Overlay */}
+      {isApiKeyModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-black/75 animate-fadeIn"
+          onClick={() => setIsApiKeyModalOpen(false)}
+        >
+          {/* Modal Container */}
+          <div 
+            className="bg-[#0b0c15] border-2 border-white/10 rounded-2xl max-w-sm w-full p-5 relative shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.1)] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Glowing Accent Ring */}
+            <div className="absolute -right-16 -top-16 w-32 h-32 bg-[#818cf8]/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -left-16 -bottom-16 w-32 h-32 bg-[#a855f7]/10 rounded-full blur-2xl pointer-events-none" />
+
+            {/* Title / Header */}
+            <div className="flex items-center gap-3 pb-3 border-b border-white/10 mb-4 text-white">
+              <div className="p-2.5 bg-[#818cf8]/10 rounded-xl border border-[#818cf8]/25 text-yellow-400">
+                <Key className="w-5 h-5 animate-pulse" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-xs sm:text-sm font-bold">Gemini API Key সেটিংস</h3>
+                <p className="text-[9px] text-white/40 font-mono font-bold tracking-wider">SECURE CUSTOM KEY CONFIGURATION</p>
+              </div>
+            </div>
+
+            {/* Explanatory Info Card */}
+            <div className="bg-[#050508]/60 border border-white/5 rounded-xl p-3 mb-4 text-[11px] space-y-2 text-white/70 leading-relaxed font-sans shadow-inner text-left">
+              <p>
+                💡 <strong>কেন নিজের API Key যোগ করবেন?</strong><br />
+                এপপ্সটি মোবাইলে বা হোম স্ক্রিনে ইনস্টল (PWA) করে চালালে অথবা সার্ভারের প্রম্পট তৈরির ফ্রি কোটা বায়াসড বা শেষ হয়ে গেলে, নিজের API Key যোগ করে ১০০% ফুললি নিরবচ্ছিন্নভাবে ব্যবহার করতে পারেন।
+              </p>
+              <p>
+                🌐 <strong>কিভাবে ফ্রি কী নিবেন?</strong><br />
+                ১ মিনিটে সম্পূর্ণ ফ্রিতে নিজের API Key পেতে নিচের বাটনে ক্লিক করে Google AI Studio থেকে কী জেনারেট করে আনুন।
+              </p>
+              <p className="pt-0.5 text-[#818cf8] font-semibold">
+                * আপনার কীটি সম্পূর্ণ সুরক্ষিত থাকবে এবং শুধুমাত্র আপনার ডিভাইসের ব্রাউজারেই (Local Storage) সেভ থাকবে।
+              </p>
+            </div>
+
+            {/* AI Studio Link Button */}
+            <a 
+              href="https://aistudio.google.com/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-full mb-4 px-4 py-2.5 bg-gradient-to-r from-indigo-950/60 to-purple-950/60 hover:from-indigo-900 hover:to-purple-900 border border-indigo-500/20 border-b-[3px] border-b-black text-xs text-center text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md hover:scale-[1.01]"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-yellow-400 animate-pulse" />
+              <span>ফ্রি Gemini API Key তৈরি করুন ↗</span>
+            </a>
+
+            {/* Input Form */}
+            <div className="space-y-4">
+              <div className="text-left">
+                <label className="block text-[10px] font-bold tracking-wider text-white/70 mb-1.5 uppercase font-mono">
+                  আপনার Gemini API Key
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    type={showApiKeyPlainText ? "text" : "password"}
+                    placeholder="AI Studio API Key (যেমন: AIzaSy...)"
+                    value={customApiKey}
+                    onChange={(e) => handleSaveApiKey(e.target.value)}
+                    className="w-full bg-[#040409] border border-white/10 rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white placeholder:text-white/30 focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1] outline-none font-mono tracking-wider shadow-inner"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKeyPlainText(!showApiKeyPlainText)}
+                    className="absolute right-3 text-white/40 hover:text-white/80 transition-colors p-1"
+                    title={showApiKeyPlainText ? "লুকান" : "দেখুন"}
+                  >
+                    {showApiKeyPlainText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-1">
+                {customApiKey && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleSaveApiKey("");
+                      setIsApiKeyModalOpen(false);
+                    }}
+                    className="flex-1 py-2.5 bg-red-950/35 hover:bg-red-900/30 text-red-300 border border-red-500/20 border-b-[3px] border-b-black rounded-xl text-xs font-bold transition-all text-center cursor-pointer"
+                  >
+                     বাতিল করুন
+                  </button>
+                )}
+                
+                <button
+                  type="button"
+                  onClick={() => setIsApiKeyModalOpen(false)}
+                  className="flex-1 py-2.5 bg-gradient-to-b from-[#6366f1] to-[#4f46e5] border-b-[3px] border-b-black text-white hover:brightness-110 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  {customApiKey ? "সেভ এবং সম্পন্ন" : "বন্ধ করুন"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

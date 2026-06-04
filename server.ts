@@ -18,8 +18,13 @@ app.use(express.urlencoded({ limit: "25mb", extended: true }));
  * Throws a clear error if the API key is not supplied.
  */
 function getGeminiClient(customKey?: string) {
-  const apiKey = customKey || process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  // Trim and check if the customKey is set and valid (not empty, or literal string containing "undefined" or "null")
+  const cleanedCustomKey = (customKey && typeof customKey === "string") ? customKey.trim() : "";
+  const isValidCustomKey = cleanedCustomKey.length > 0 && cleanedCustomKey !== "undefined" && cleanedCustomKey !== "null";
+
+  const apiKey = isValidCustomKey ? cleanedCustomKey : (process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : "");
+  
+  if (!apiKey || apiKey.length === 0) {
     throw new Error("GEMINI_API_KEY পাওয়া যায়নি। অনুগ্রহ করে আপনার নিজস্ব API কী অ্যাপের সেটিংস থেকে যুক্ত করুন অথবা AI Studio Secrets প্যানেলে সেটআপ করুন।");
   }
   return new GoogleGenAI({
@@ -34,7 +39,12 @@ function getGeminiClient(customKey?: string) {
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", message: "Server is fully responsive." });
+  const serverKeyExist = typeof process.env.GEMINI_API_KEY === "string" && process.env.GEMINI_API_KEY.trim().length > 0;
+  res.json({ 
+    status: "ok", 
+    message: "Server is fully responsive.",
+    hasServerKey: serverKeyExist
+  });
 });
 
 // API endpoint to analyze a base64 image and generate animation prompts
